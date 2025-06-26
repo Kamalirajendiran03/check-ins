@@ -1,0 +1,189 @@
+!!!!!!!!!app.py
+
+import sqlite3
+
+from flask import Flask, render_template, request
+
+app = Flask(__name__)
+
+# Route to display the form
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+# Route to handle form submission
+@app.route('/submit', methods=['POST'])
+def submit():
+    # Get the data from the form
+    user_id = request.form['userId']
+    venue_id = request.form['venueId']
+    utc_timestamp = request.form['utcTimestamp']
+    venue_category = request.form['venueCategory']
+    city = request.form['city']
+    latitude = request.form['latitude']
+    longitude = request.form['longitude']
+
+    # Connect to the database (checkin.db)
+    conn = sqlite3.connect('checkin.db')
+    c = conn.cursor()
+
+    # Create table if it doesn't exist
+    c.execute('''
+    CREATE TABLE IF NOT EXISTS checkin (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT,
+        venue_id TEXT,
+        utc_timestamp TEXT,
+        venue_category TEXT,
+        city TEXT,
+        latitude REAL,
+        longitude REAL
+    )
+    ''')
+
+    # Insert the form data into the database
+    c.execute('''
+    INSERT INTO checkin (user_id, venue_id, utc_timestamp, venue_category, city, latitude, longitude)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+    ''', (user_id, venue_id, utc_timestamp, venue_category, city, latitude, longitude))
+
+    # Commit the transaction and close the connection
+    conn.commit()
+    conn.close()
+
+    return 'Form data has been successfully submitted!'
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
+
+----------------------------------------------------------------------------------------------------------------
+
+
+server.py
+import flwr as fl
+import tensorflow as tf
+
+
+# Define model
+def build_model():
+    model = tf.keras.models.Sequential([
+        tf.keras.layers.Dense(16, activation='relu', input_shape=(6,)),
+        tf.keras.layers.Dense(8, activation='relu'),
+        tf.keras.layers.Dense(4, activation='softmax')
+    ])
+    model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+    return model
+
+# Start Flower server
+fl.server.start_server(
+    server_address="0.0.0.0:8080",
+    config=fl.server.ServerConfig(num_rounds=3)
+)
+--------------------------------------------------------------------------------------------------
+client.py
+
+import sqlite3
+
+import flwr as fl
+import numpy as np
+import tensorflow as tf
+
+
+# Connect and load client-specific data
+def load_client_data(client_id):
+    conn = sqlite3.connect('checkin_client_{}.db'.format(client_id))
+    cursor = conn.cursor()
+    cursor.execute("SELECT latitude, longitude FROM checkin")
+    features = cursor.fetchall()
+    cursor.execute("SELECT CASE venue_category WHEN 'Museum' THEN 0 WHEN 'Bar' THEN 1 ELSE 2 END FROM checkin")
+    labels = cursor.fetchall()
+    conn.close()
+    x = np.array(features)
+    y = np.array(labels).reshape(-1)
+    return x, y
+
+# Build model
+def build_model():
+    model = tf.keras.models.Sequential([
+        tf.keras.layers.Dense(16, activation='relu', input_shape=(2,)),
+        tf.keras.layers.Dense(8, activation='relu'),
+        tf.keras.layers.Dense(3, activation='softmax')
+    ])
+    model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+    return model
+
+
+class FLClient(fl.client.NumPyClient):
+    def __init__(self, client_id):
+        self.model = build_model()
+        self.x_train, self.y_train = load_client_data(client_id)
+
+    def get_parameters(self, config):
+        return self.model.get_weights()
+
+    def fit(self, parameters, config):
+        self.model.set_weights(parameters)
+        self.model.fit(self.x_train, self.y_train, epochs=3, batch_size=16)
+        return self.model.get_weights(), len(self.x_train), {}
+
+    def evaluate(self, parameters, config):
+        self.model.set_weights(parameters)
+        loss, accuracy = self.model.evaluate(self.x_train, self.y_train)
+        return loss, len(self.x_train), {"accuracy": accuracy}
+
+if __name__ == "__main__":
+    import sys
+    client_id = sys.argv[1]
+    fl.client.start_numpy_client(server_address="127.0.0.1:8080", client=FLClient(client_id))
+--------------------------------------------------------------------------------
+split_data.py
+import sqlite3
+
+import numpy as np
+import pandas as pd
+
+# Load original data
+conn = sqlite3.connect('checkin.db')
+df = pd.read_sql_query("SELECT * FROM checkin", conn)
+conn.close()
+
+# Shuffle
+df = df.sample(frac=1).reset_index(drop=True)
+
+# Split into 3 parts
+clients = np.array_split(df, 3)
+
+# Save for each client
+for i, client_df in enumerate(clients):
+    conn = sqlite3.connect(f'checkin_client_{i+1}.db')
+    client_df.to_sql('checkin', conn, index=False, if_exists='replace')
+    conn.close()
+------------------------------------------------------------------------------------
+index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Form Submission</title>
+</head>
+<body>
+    <h1>Submit Your Details</h1>
+    <form method="POST" action="/submit">
+        User ID: <input type="text" name="userId"><br>
+        Venue ID: <input type="text" name="venueId"><br>
+        Timestamp: <input type="text" name="utcTimestamp"><br>
+        Venue Category: <input type="text" name="venueCategory"><br>
+        City: <input type="text" name="city"><br>
+        Latitude: <input type="text" name="latitude"><br>
+        Longitude: <input type="text" name="longitude"><br>
+        <input type="submit" value="Submit">
+    </form>
+    
+    
+    
+    <!-- Form to submit data -->
+    
+</body>
+</html>

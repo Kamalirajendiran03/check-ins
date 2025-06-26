@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check-in Result</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .result-box {
+            background-color: #e8f5e9;
+            border-left: 5px solid #4CAF50;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .location-map {
+            margin: 20px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            height: 300px;
+            background-color: #eee;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-style: italic;
+            color: #666;
+        }
+        .buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        .buttons a {
+            display: inline-block;
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .buttons a:hover {
+            background-color: #45a049;
+        }
+        .comparison {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0;
+        }
+        .comparison div {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+        }
+        .prediction {
+            background-color: #e3f2fd;
+            border-radius: 4px;
+        }
+        .actual {
+            background-color: #fff3e0;
+            border-radius: 4px;
+        }
+        .match {
+            background-color: #dcedc8;
+            font-weight: bold;
+        }
+        .no-match {
+            background-color: #ffcdd2;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Check-in Successful!</h1>
+        
+        <div class="result-box">
+            <p><strong>User ID:</strong> {{ user_id }}</p>
+            <p><strong>Venue ID:</strong> {{ venue_id }}</p>
+            
+            <div class="comparison">
+                <div class="prediction">
+                    <h3>AI Prediction</h3>
+                    <p>{{ predicted_category }}</p>
+                </div>
+                <div class="actual">
+                    <h3>Actual Category</h3>
+                    <p>{{ actual_category }}</p>
+                </div>
+            </div>
+            
+            <div class="{% if predicted_category == actual_category %}match{% else %}no-match{% endif %}">
+                {% if predicted_category == actual_category %}
+                    <p>✓ Prediction matches actual category!</p>
+                {% else %}
+                    <p>✗ Prediction does not match actual category.</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="location-map">
+            <p>Map location: {{ latitude }}, {{ longitude }}</p>
+        </div>
+        
+        <div class="buttons">
+            <a href="/">New Check-in</a>
+            <a href="/checkins">View All Check-ins</a>
+        </div>
+    </div>
+</body>
+</html>

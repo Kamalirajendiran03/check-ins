@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Check-ins</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        .back-link {
+            display: block;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .back-link a {
+            display: inline-block;
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+        .back-link a:hover {
+            background-color: #45a049;
+        }
+        .empty-message {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            margin: 50px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>All Check-ins</h1>
+    
+    {% if checkins %}
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>User ID</th>
+                <th>Venue ID</th>
+                <th>Timestamp (UTC)</th>
+                <th>Venue Category</th>
+                <th>City</th>
+                <th>Coordinates</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for checkin in checkins %}
+            <tr>
+                <td>{{ checkin.id }}</td>
+                <td>{{ checkin.user_id }}</td>
+                <td>{{ checkin.venue_id }}</td>
+                <td>{{ checkin.utc_timestamp }}</td>
+                <td>{{ checkin.venue_category }}</td>
+                <td>{{ checkin.city }}</td>
+                <td>{{ checkin.latitude }}, {{ checkin.longitude }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-message">
+        <p>No check-ins found. Start by adding a new check-in!</p>
+    </div>
+    {% endif %}
+    
+    <div class="back-link">
+        <a href="/">Back to Check-in Form</a>
+    </div>
+</body>
+</html>
